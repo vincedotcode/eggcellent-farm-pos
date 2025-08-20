@@ -1,96 +1,97 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Plus, Minus, Trash2, User, Receipt } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Receipt, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddCustomerDialog from "@/components/AddCustomerDialog";
+import { usePosProducts, usePosCustomers, useCheckout } from "@/features/pos/hooks";
+import type { CartItem } from "@/features/pos/types";
+import { calcSubtotal, calcTax, calcTotal } from "@/features/pos/utils";
 
 const POS = () => {
-  const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [cart, setCart] = useState<any[]>([]);
   const { toast } = useToast();
 
-  // Sample products
-  const products = [
-    { id: 1, name: "Grade A Large Eggs", price: 2.99, stock: 1250, tax: 8.5 },
-    { id: 2, name: "Grade AA Medium Eggs", price: 2.79, stock: 45, tax: 8.5 },
-    { id: 3, name: "Free Range Large Eggs", price: 4.49, stock: 890, tax: 8.5 },
-    { id: 4, name: "Duck Eggs Large", price: 6.99, stock: 25, tax: 8.5 }
-  ];
+  // Data
+  const [productSearch, setProductSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const { data: products = [], isLoading: loadingProducts, error: productsError } = usePosProducts(productSearch);
+  const { data: customers = [], isLoading: loadingCustomers, error: customersError } = usePosCustomers(customerSearch);
 
-  // Sample customers with addresses
-  const customers = [
-    { id: "1", name: "Fresh Mart Grocery", address: "123 Market Street, Downtown, CA 90210" },
-    { id: "2", name: "Sunny Side Cafe", address: "456 Oak Avenue, Uptown, CA 90211" },
-    { id: "3", name: "Metro Restaurant Group", address: "789 Business Blvd, Metro City, CA 90212" },
-    { id: "walk-in", name: "Walk-in Customer", address: "N/A" }
-  ];
+  // Cart & customer
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const checkout = useCheckout();
 
-  const addToCart = (product: any) => {
-    const existingItem = cart.find(item => item.id === product.id);
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-      ));
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-    }
-  };
+  // Derived
+  const subtotal = useMemo(() => calcSubtotal(cart), [cart]);
+  const tax = useMemo(() => calcTax(cart), [cart]);
+  const total = useMemo(() => calcTotal(cart), [cart]);
 
-  const updateQuantity = (id: number, change: number) => {
-    setCart(cart.map(item => {
-      if (item.id === id) {
-        const newQuantity = item.quantity + change;
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
+  const addToCart = (p: { id: string; name: string; price: number; tax_rate: number; stock: number }) => {
+    if (p.stock <= 0) return;
+
+    setCart(prev => {
+      const existing = prev.find(i => i.product_id === p.id);
+      if (existing) {
+        // cap at available stock
+        const desired = existing.quantity + 1;
+        if (desired > p.stock) {
+          toast({ title: "Insufficient stock", description: `Only ${p.stock} units available.`, variant: "destructive" });
+          return prev;
+        }
+        return prev.map(i => i.product_id === p.id ? { ...i, quantity: desired } : i);
       }
-      return item;
-    }).filter(item => item.quantity > 0));
-  };
-
-  const removeFromCart = (id: number) => {
-    setCart(cart.filter(item => item.id !== id));
-  };
-
-  const calculateSubtotal = () => {
-    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  };
-
-  const calculateTax = () => {
-    return cart.reduce((sum, item) => sum + (item.price * item.quantity * item.tax / 100), 0);
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
-  };
-
-  const handleCheckout = () => {
-    if (cart.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Please add items to cart before checkout",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!selectedCustomer) {
-      toast({
-        title: "Customer required",
-        description: "Please select a customer before checkout",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    toast({
-      title: "Checkout requires Supabase",
-      description: "Connect to Supabase to process sales and generate invoices",
-      variant: "destructive"
+      return [...prev, { product_id: p.id, name: p.name, price: p.price, tax_rate: p.tax_rate, stock: p.stock, quantity: 1 }];
     });
+  };
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product_id !== productId) return item;
+      const max = item.stock;
+      const desired = item.quantity + delta;
+      if (desired <= 0) return item; // filtered out below
+      if (desired > max) {
+        toast({ title: "Insufficient stock", description: `Only ${max} units available.`, variant: "destructive" });
+        return item;
+      }
+      return { ...item, quantity: desired };
+    }).filter(i => i.quantity > 0));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(prev => prev.filter(i => i.product_id !== productId));
+  };
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      toast({ title: "Cart is empty", description: "Add items before checkout.", variant: "destructive" });
+      return;
+    }
+    if (!selectedCustomer) {
+      toast({ title: "Customer required", description: "Select a customer (or Walk-in).", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const isWalkIn = selectedCustomer === "walk-in";
+      const { sale_id, subtotal, tax_amount, total } = await checkout.mutateAsync({
+        customerId: isWalkIn ? null : selectedCustomer,
+        cart
+      });
+      toast({ title: "Sale completed", description: `Sale #${sale_id} • Total $${total.toFixed(2)}` });
+      setCart([]);
+    } catch (e: any) {
+      toast({
+        title: "Checkout failed",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -105,8 +106,20 @@ const POS = () => {
         <Card>
           <CardHeader>
             <CardTitle>Available Products</CardTitle>
+            <div className="relative max-w-md mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-10"
+                placeholder="Search products..."
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
+              />
+            </div>
           </CardHeader>
           <CardContent>
+            {loadingProducts && <div className="text-sm text-muted-foreground p-2">Loading products…</div>}
+            {productsError && <div className="text-sm text-destructive p-2">Failed to load products.</div>}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {products.map((product) => (
                 <Card key={product.id} className="cursor-pointer hover:shadow-lg transition-shadow">
@@ -115,19 +128,18 @@ const POS = () => {
                       <div className="flex-1">
                         <h3 className="font-medium">{product.name}</h3>
                         <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
-                        <p className="text-lg font-bold text-primary">${product.price}</p>
+                        <p className="text-lg font-bold text-primary">${Number(product.price).toFixed(2)}</p>
                       </div>
-                      <Button
-                        onClick={() => addToCart(product)}
-                        size="sm"
-                        disabled={product.stock === 0}
-                      >
+                      <Button onClick={() => addToCart(product)} size="sm" disabled={product.stock === 0}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
+              {(!loadingProducts && products.length === 0) && (
+                <div className="text-sm text-muted-foreground p-2">No products available.</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -144,35 +156,36 @@ const POS = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Customer Selection */}
-            <div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Customer</label>
               <div className="flex gap-2">
                 <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Select customer" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
+                  <SelectContent className="max-h-80">
+                    <SelectItem value="walk-in">Walk-in Customer</SelectItem>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <AddCustomerDialog 
-                  isQuickAdd={true}
-                  trigger={
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  }
+                <AddCustomerDialog
+                  isQuickAdd
+                  trigger={<Button variant="outline" size="sm"><Plus className="h-4 w-4" /></Button>}
                   onCustomerAdded={(customer) => {
-                    toast({
-                      title: "Customer added",
-                      description: `${customer.name} has been added and selected.`,
-                    });
+                    toast({ title: "Customer added", description: `${customer.name} selected.` });
                     setSelectedCustomer(customer.id.toString());
                   }}
+                />
+              </div>
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-10"
+                  placeholder="Search customers…"
+                  value={customerSearch}
+                  onChange={e => setCustomerSearch(e.target.value)}
                 />
               </div>
             </div>
@@ -183,32 +196,22 @@ const POS = () => {
                 <p className="text-center text-muted-foreground py-8">Cart is empty</p>
               ) : (
                 cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-2 border rounded">
+                  <div key={item.product_id} className="flex items-center justify-between p-2 border rounded">
                     <div className="flex-1">
                       <p className="font-medium text-sm">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">${item.price} each</p>
+                      <p className="text-xs text-muted-foreground">
+                        ${item.price.toFixed(2)} each • Tax {item.tax_rate}%
+                      </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateQuantity(item.id, -1)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => updateQuantity(item.product_id, -1)}>
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="text-sm font-medium">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateQuantity(item.id, 1)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => updateQuantity(item.product_id, +1)}>
                         <Plus className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeFromCart(item.id)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => removeFromCart(item.product_id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -222,15 +225,15 @@ const POS = () => {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
-                  <span>${calculateSubtotal().toFixed(2)}</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Tax:</span>
-                  <span>${calculateTax().toFixed(2)}</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold">
                   <span>Total:</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span>${total.toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -238,11 +241,20 @@ const POS = () => {
             <Button
               onClick={handleCheckout}
               className="w-full"
-              disabled={cart.length === 0 || !selectedCustomer}
+              disabled={cart.length === 0 || !selectedCustomer || checkout.isPending}
             >
               <Receipt className="mr-2 h-4 w-4" />
-              Checkout
+              {checkout.isPending ? "Processing…" : "Checkout"}
             </Button>
+
+            {(loadingCustomers || loadingProducts) && (
+              <div className="text-xs text-muted-foreground">Loading data…</div>
+            )}
+            {(customersError || productsError) && (
+              <div className="text-xs text-destructive">
+                {(customersError as any)?.message || (productsError as any)?.message || "Data load error"}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

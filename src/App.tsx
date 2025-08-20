@@ -15,44 +15,87 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./providers/AuthProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Sales from "./pages/Sales";
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-  <TooltipProvider>
-    <Toaster />
-    <Sonner />
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
 
-          <Route path="/dashboard" element={
-            <ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>
-          } />
-          <Route path="/customers" element={
-            <ProtectedRoute><Layout><Customers /></Layout></ProtectedRoute>
-          } />
-          <Route path="/inventory" element={
-            <ProtectedRoute><Layout><Inventory /></Layout></ProtectedRoute>
-          } />
-          <Route path="/pos" element={
-            <ProtectedRoute><Layout><POS /></Layout></ProtectedRoute>
-          } />
-          <Route path="/invoices" element={
-            <ProtectedRoute><Layout><Invoices /></Layout></ProtectedRoute>
-          } />
-          <Route path="/create-invoice" element={
-            <ProtectedRoute><Layout><CreateInvoice /></Layout></ProtectedRoute>
-          } />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Layout><Dashboard /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customers"
+              element={
+                <ProtectedRoute>
+                  <Layout><Customers /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <ProtectedRoute>
+                  <Layout><Inventory /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pos"
+              element={
+                <ProtectedRoute>
+                  <Layout><POS /></Layout>
+                </ProtectedRoute>
+              }
+            />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  </TooltipProvider>
-</QueryClientProvider>
+            {/* ✅ New Sales route */}
+            <Route
+              path="/sales"
+              element={
+                <ProtectedRoute>
+                  <Layout><Sales /></Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/invoices"
+              element={
+                <ProtectedRoute>
+                  <Layout><Invoices /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-invoice"
+              element={
+                <ProtectedRoute>
+                  <Layout><CreateInvoice /></Layout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
 );
 
 export default App;

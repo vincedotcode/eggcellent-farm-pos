@@ -28,6 +28,8 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Customers', href: '/customers', icon: Users },
     { name: 'Inventory', href: '/inventory', icon: Package },
+    { name: 'Sales', href: '/sales', icon: ShoppingCart }, // import ShoppingCart if not already
+
     { name: 'Point of Sale', href: '/pos', icon: ShoppingCart },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Create Invoice', href: '/create-invoice', icon: Plus },

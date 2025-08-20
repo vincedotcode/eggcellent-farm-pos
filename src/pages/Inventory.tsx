@@ -1,78 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit, AlertTriangle, Package } from "lucide-react";
+import { useProducts } from "@/features/inventory/hooks";
+import { getStockStatus, lowStockCount, totalStockValue } from "@/features/inventory/utils";
+import type { Product } from "@/features/inventory/types";
+import AddProductDialog from "@/components/AddProductDialog";
+
+const PAGE_SIZE = 500;
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const params = useMemo(() => ({ search: searchTerm, limit: PAGE_SIZE, offset: 0 }), [searchTerm]);
 
-  // Sample inventory data
-  const inventory = [
-    {
-      id: 1,
-      name: "Grade A Large Eggs",
-      sku: "EGG-A-L-001",
-      category: "Fresh Eggs",
-      stock: 1250,
-      minStock: 500,
-      price: 2.99,
-      tax: 8.5,
-      supplier: "Happy Hens Farm",
-      description: "Premium grade A large white eggs, cage-free"
-    },
-    {
-      id: 2,
-      name: "Grade AA Medium Eggs",
-      sku: "EGG-AA-M-002",
-      category: "Fresh Eggs",
-      stock: 45,
-      minStock: 200,
-      price: 2.79,
-      tax: 8.5,
-      supplier: "Happy Hens Farm",
-      description: "Top quality grade AA medium eggs, organic"
-    },
-    {
-      id: 3,
-      name: "Free Range Large Eggs",
-      sku: "EGG-FR-L-003",
-      category: "Organic Eggs",
-      stock: 890,
-      minStock: 300,
-      price: 4.49,
-      tax: 8.5,
-      supplier: "Green Pastures Co.",
-      description: "Free-range large brown eggs, pasture-raised"
-    },
-    {
-      id: 4,
-      name: "Duck Eggs Large",
-      sku: "DUCK-L-004",
-      category: "Specialty Eggs",
-      stock: 25,
-      minStock: 50,
-      price: 6.99,
-      tax: 8.5,
-      supplier: "Countryside Ducks",
-      description: "Fresh duck eggs, rich and creamy texture"
-    }
-  ];
+  const { data, isLoading, isError, error } = useProducts(params);
+  const inventory: Product[] = data ?? [];
 
-  const filteredInventory = inventory.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const lowCount = lowStockCount(inventory);
+  const totalValue = totalStockValue(inventory);
 
-  const getStockStatus = (stock: number, minStock: number) => {
-    if (stock <= minStock * 0.5) return "critical";
-    if (stock <= minStock) return "low";
-    return "good";
-  };
-
-  const getStockBadge = (stock: number, minStock: number) => {
+  const stockBadge = (stock: number, minStock: number) => {
     const status = getStockStatus(stock, minStock);
     if (status === "critical") return <Badge variant="destructive">Critical</Badge>;
     if (status === "low") return <Badge variant="outline" className="border-warning text-warning">Low Stock</Badge>;
@@ -86,10 +36,7 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Track and manage your egg inventory</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
+        <AddProductDialog paramsForInvalidate={params} />
       </div>
 
       {/* Stock Alerts */}
@@ -111,9 +58,7 @@ const Inventory = () => {
               <AlertTriangle className="h-5 w-5 text-warning" />
               <div>
                 <p className="text-sm font-medium">Low Stock Items</p>
-                <p className="text-2xl font-bold text-warning">
-                  {inventory.filter(item => getStockStatus(item.stock, item.minStock) !== "good").length}
-                </p>
+                <p className="text-2xl font-bold text-warning">{lowCount}</p>
               </div>
             </div>
           </CardContent>
@@ -124,9 +69,7 @@ const Inventory = () => {
               <Package className="h-5 w-5 text-success" />
               <div>
                 <p className="text-sm font-medium">Total Stock Value</p>
-                <p className="text-2xl font-bold">
-                  ${inventory.reduce((sum, item) => sum + (item.stock * item.price), 0).toLocaleString()}
-                </p>
+                <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -147,49 +90,59 @@ const Inventory = () => {
             </div>
           </div>
         </CardHeader>
+
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Tax %</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInventory.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-sm text-muted-foreground">{item.description}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div className="font-medium">{item.stock} units</div>
-                      <div className="text-muted-foreground">Min: {item.minStock}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">${item.price}</TableCell>
-                  <TableCell>{item.tax}%</TableCell>
-                  <TableCell>{getStockBadge(item.stock, item.minStock)}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+          {isLoading && <div className="p-4 text-sm text-muted-foreground">Loading products…</div>}
+          {isError && <div className="p-4 text-sm text-destructive">{(error as any)?.message || "Failed to load products."}</div>}
+
+          {!isLoading && inventory.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Tax %</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {inventory.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{item.name}</div>
+                        {item.description && <div className="text-sm text-muted-foreground">{item.description}</div>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{item.sku}</TableCell>
+                    <TableCell>{item.category || "—"}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">{item.stock} units</div>
+                        <div className="text-muted-foreground">Min: {item.min_stock}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">${Number(item.price).toFixed(2)}</TableCell>
+                    <TableCell>{Number(item.tax_rate).toFixed(1)}%</TableCell>
+                    <TableCell>{stockBadge(item.stock, item.min_stock)}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {!isLoading && inventory.length === 0 && (
+            <div className="p-4 text-sm text-muted-foreground">No products found.</div>
+          )}
         </CardContent>
       </Card>
     </div>

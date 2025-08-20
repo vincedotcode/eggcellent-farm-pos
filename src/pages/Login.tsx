@@ -6,22 +6,26 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Egg } from "lucide-react";
+import { useAuth } from "@/providers/AuthProvider";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // This will need Supabase integration for actual authentication
-    toast({
-      title: "Login functionality requires Supabase",
-      description: "Connect to Supabase to enable authentication",
-      variant: "destructive"
-    });
-  };
+
+
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const { error } = await signIn(email, password);
+  if (error) {
+    toast({ title: "Sign-in failed", description: error, variant: "destructive" });
+    return;
+  }
+  navigate("/dashboard");
+};
 
   const handleDemoLogin = () => {
     // Demo access to the system

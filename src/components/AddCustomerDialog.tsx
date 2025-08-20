@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useCreateCustomer } from "@/features/customers/hooks";
+
 
 interface AddCustomerDialogProps {
   trigger?: React.ReactNode;
@@ -18,6 +21,8 @@ const AddCustomerDialog = ({ trigger, isQuickAdd = false, onCustomerAdded }: Add
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const create = useCreateCustomer({ search: "", limit: 50, offset: 0 });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,61 +36,54 @@ const AddCustomerDialog = ({ trigger, isQuickAdd = false, onCustomerAdded }: Add
     notes: ""
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  try {
+    const payload = {
+      name: formData.name,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      type: formData.type as any,
+      address: formData.address || null,
+      city: formData.city || null,
+      state: formData.state || null,
+      zip_code: formData.zipCode || null,
+      notes: formData.notes || null,
+      status: "Active" as const
+    };
+    const newCustomer = await create.mutateAsync(payload);
 
-    try {
-      // TODO: Replace with actual Supabase call
-      // const { data, error } = await supabase
-      //   .from('customers')
-      //   .insert([formData])
-      //   .select()
-      //   .single();
+    toast({
+      title: "Customer added successfully",
+      description: `${payload.name} has been added to your customer list.`,
+    });
 
-      // if (error) throw error;
+    onCustomerAdded?.(newCustomer);
 
-      // Mock successful creation
-      const newCustomer = {
-        id: Date.now(),
-        ...formData,
-        status: "Active",
-        totalOrders: 0,
-        totalSpent: "$0.00"
-      };
+    setFormData({
+      name: "",
+      email: "",
+      phone: "",
+      type: "Retail",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      notes: ""
+    });
 
-      toast({
-        title: "Customer added successfully",
-        description: `${formData.name} has been added to your customer list.`,
-      });
-
-      if (onCustomerAdded) {
-        onCustomerAdded(newCustomer);
-      }
-
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        type: "Retail",
-        address: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        notes: ""
-      });
-
-      setOpen(false);
-    } catch (error) {
-      toast({
-        title: "Error adding customer",
-        description: "There was a problem adding the customer. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    setOpen(false);
+  } catch (error: any) {
+    toast({
+      title: "Error adding customer",
+      description: error?.message ?? "There was a problem adding the customer.",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const defaultTrigger = (
     <Button className="bg-primary hover:bg-primary/90">

@@ -13,6 +13,7 @@ import {
   Egg,
   Plus
 } from "lucide-react";
+import { useAuth } from "@/providers/AuthProvider";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -88,9 +90,9 @@ const Layout = ({ children }: LayoutProps) => {
           <Button
             variant="ghost"
             className="w-full justify-start text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              // Logout functionality - will need Supabase integration
-              window.location.href = '/';
+            onClick={async () => {
+              await signOut();
+              window.location.href = '/login';
             }}
           >
             <LogOut className="mr-3 h-5 w-5" />

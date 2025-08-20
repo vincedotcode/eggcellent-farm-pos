@@ -13,30 +13,46 @@ import CreateInvoice from "./pages/CreateInvoice";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-
+import { AuthProvider } from "./providers/AuthProvider";
+import ProtectedRoute from "@/components/ProtectedRoute";
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-          <Route path="/customers" element={<Layout><Customers /></Layout>} />
-          <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
-          <Route path="/pos" element={<Layout><POS /></Layout>} />
-          <Route path="/invoices" element={<Layout><Invoices /></Layout>} />
-          <Route path="/create-invoice" element={<Layout><CreateInvoice /></Layout>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          <Route path="/dashboard" element={
+            <ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>
+          } />
+          <Route path="/customers" element={
+            <ProtectedRoute><Layout><Customers /></Layout></ProtectedRoute>
+          } />
+          <Route path="/inventory" element={
+            <ProtectedRoute><Layout><Inventory /></Layout></ProtectedRoute>
+          } />
+          <Route path="/pos" element={
+            <ProtectedRoute><Layout><POS /></Layout></ProtectedRoute>
+          } />
+          <Route path="/invoices" element={
+            <ProtectedRoute><Layout><Invoices /></Layout></ProtectedRoute>
+          } />
+          <Route path="/create-invoice" element={
+            <ProtectedRoute><Layout><CreateInvoice /></Layout></ProtectedRoute>
+          } />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </AuthProvider>
+  </TooltipProvider>
+</QueryClientProvider>
 );
 
 export default App;

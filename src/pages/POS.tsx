@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Plus, Minus, Trash2, User, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AddCustomerDialog from "@/components/AddCustomerDialog";
 
 const POS = () => {
   const [selectedCustomer, setSelectedCustomer] = useState("");
@@ -21,12 +22,12 @@ const POS = () => {
     { id: 4, name: "Duck Eggs Large", price: 6.99, stock: 25, tax: 8.5 }
   ];
 
-  // Sample customers
+  // Sample customers with addresses
   const customers = [
-    { id: "1", name: "Fresh Mart Grocery" },
-    { id: "2", name: "Sunny Side Cafe" },
-    { id: "3", name: "Metro Restaurant Group" },
-    { id: "walk-in", name: "Walk-in Customer" }
+    { id: "1", name: "Fresh Mart Grocery", address: "123 Market Street, Downtown, CA 90210" },
+    { id: "2", name: "Sunny Side Cafe", address: "456 Oak Avenue, Uptown, CA 90211" },
+    { id: "3", name: "Metro Restaurant Group", address: "789 Business Blvd, Metro City, CA 90212" },
+    { id: "walk-in", name: "Walk-in Customer", address: "N/A" }
   ];
 
   const addToCart = (product: any) => {
@@ -145,18 +146,35 @@ const POS = () => {
             {/* Customer Selection */}
             <div>
               <label className="text-sm font-medium">Customer</label>
-              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <AddCustomerDialog 
+                  isQuickAdd={true}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  }
+                  onCustomerAdded={(customer) => {
+                    toast({
+                      title: "Customer added",
+                      description: `${customer.name} has been added and selected.`,
+                    });
+                    setSelectedCustomer(customer.id.toString());
+                  }}
+                />
+              </div>
             </div>
 
             {/* Cart Items */}

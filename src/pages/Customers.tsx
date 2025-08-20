@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import AddCustomerDialog from "@/components/AddCustomerDialog";
 
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Sample customer data
+  // Sample customer data with addresses
   const customers = [
     {
       id: 1,
@@ -19,7 +20,11 @@ const Customers = () => {
       type: "Wholesale",
       status: "Active",
       totalOrders: 45,
-      totalSpent: "$12,450"
+      totalSpent: "$12,450",
+      address: "123 Market Street",
+      city: "Downtown",
+      state: "CA",
+      zipCode: "90210"
     },
     {
       id: 2,
@@ -29,7 +34,11 @@ const Customers = () => {
       type: "Retail",
       status: "Active",
       totalOrders: 28,
-      totalSpent: "$3,240"
+      totalSpent: "$3,240",
+      address: "456 Oak Avenue",
+      city: "Uptown",
+      state: "CA",
+      zipCode: "90211"
     },
     {
       id: 3,
@@ -39,7 +48,11 @@ const Customers = () => {
       type: "Wholesale",
       status: "Inactive",
       totalOrders: 67,
-      totalSpent: "$18,900"
+      totalSpent: "$18,900",
+      address: "789 Business Blvd",
+      city: "Metro City",
+      state: "CA",
+      zipCode: "90212"
     }
   ];
 
@@ -55,10 +68,7 @@ const Customers = () => {
           <h1 className="text-3xl font-bold">Customer Management</h1>
           <p className="text-muted-foreground">Manage your customer relationships</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Customer
-        </Button>
+        <AddCustomerDialog />
       </div>
 
       <Card>
@@ -81,6 +91,7 @@ const Customers = () => {
               <TableRow>
                 <TableHead>Customer Name</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead>Address</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Orders</TableHead>
@@ -96,6 +107,12 @@ const Customers = () => {
                     <div className="text-sm">
                       <div>{customer.email}</div>
                       <div className="text-muted-foreground">{customer.phone}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{customer.address}</div>
+                      <div className="text-muted-foreground">{customer.city}, {customer.state} {customer.zipCode}</div>
                     </div>
                   </TableCell>
                   <TableCell>

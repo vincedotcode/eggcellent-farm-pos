@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  Egg
+  Egg,
+  Plus
 } from "lucide-react";
 
 interface LayoutProps {
@@ -26,7 +27,8 @@ const Layout = ({ children }: LayoutProps) => {
     { name: 'Customers', href: '/customers', icon: Users },
     { name: 'Inventory', href: '/inventory', icon: Package },
     { name: 'Point of Sale', href: '/pos', icon: ShoppingCart },
-    { name: 'Invoices', href: '/invoices', icon: FileText },
+  { name: 'Invoices', href: '/invoices', icon: FileText },
+  { name: 'Create Invoice', href: '/create-invoice', icon: Plus },
   ];
 
   const isActive = (path: string) => location.pathname === path;

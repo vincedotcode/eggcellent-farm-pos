@@ -6,10 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Search, Eye, Download, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Invoices = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const navigate = useNavigate();
 
   // Sample invoice data
   const invoices = [
@@ -101,7 +103,10 @@ const Invoices = () => {
           <h1 className="text-3xl font-bold">Invoice Management</h1>
           <p className="text-muted-foreground">Track and manage customer invoices</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          onClick={() => navigate("/create-invoice")}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create Invoice
         </Button>

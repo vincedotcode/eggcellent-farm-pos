@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Plus, Minus, Trash2, Receipt, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AddCustomerDialog from "@/components/AddCustomerDialog";
+import PaymentDialog from "@/components/PaymentDialog";
 import { usePosProducts, usePosCustomers, useCheckout } from "@/features/pos/hooks";
+import { useSalePaymentSummary } from "@/features/payments/hooks";
 import type { CartItem } from "@/features/pos/types";
 import { calcSubtotal, calcTax, calcTotal } from "@/features/pos/utils";
 
@@ -24,6 +26,8 @@ const POS = () => {
   // Cart & customer
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [allowPartialPayment, setAllowPartialPayment] = useState(false);
+  const [partialAmount, setPartialAmount] = useState<string>("");
   const checkout = useCheckout();
 
   // Derived
@@ -83,8 +87,24 @@ const POS = () => {
         customerId: isWalkIn ? null : selectedCustomer,
         cart
       });
-      toast({ title: "Sale completed", description: `Sale #${sale_id} • Total $${total.toFixed(2)}` });
+
+      if (allowPartialPayment && partialAmount) {
+        const partialPaymentAmount = parseFloat(partialAmount);
+        if (partialPaymentAmount > 0 && partialPaymentAmount < total) {
+          toast({ 
+            title: "Sale completed with partial payment", 
+            description: `Sale #${sale_id} • Paid $${partialPaymentAmount.toFixed(2)} of $${total.toFixed(2)}. Balance due: $${(total - partialPaymentAmount).toFixed(2)}` 
+          });
+        } else {
+          toast({ title: "Sale completed", description: `Sale #${sale_id} • Total $${total.toFixed(2)}` });
+        }
+      } else {
+        toast({ title: "Sale completed", description: `Sale #${sale_id} • Total $${total.toFixed(2)}` });
+      }
+      
       setCart([]);
+      setPartialAmount("");
+      setAllowPartialPayment(false);
     } catch (e: any) {
       toast({
         title: "Checkout failed",
@@ -234,6 +254,42 @@ const POS = () => {
                 <div className="flex justify-between font-bold">
                   <span>Total:</span>
                   <span>${total.toFixed(2)}</span>
+                </div>
+                
+                {/* Partial Payment Option */}
+                <div className="border-t pt-2 space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="partialPayment"
+                      checked={allowPartialPayment}
+                      onChange={(e) => setAllowPartialPayment(e.target.checked)}
+                      className="rounded"
+                    />
+                    <label htmlFor="partialPayment" className="text-sm font-medium">
+                      Allow Partial Payment
+                    </label>
+                  </div>
+                  
+                  {allowPartialPayment && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Payment Amount</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={total}
+                        value={partialAmount}
+                        onChange={(e) => setPartialAmount(e.target.value)}
+                        placeholder={`Max: $${total.toFixed(2)}`}
+                      />
+                      {partialAmount && parseFloat(partialAmount) > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          Balance due: ${(total - parseFloat(partialAmount)).toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

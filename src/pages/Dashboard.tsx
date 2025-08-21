@@ -1,34 +1,51 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Package, ShoppingCart, FileText, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Package, ShoppingCart, FileText, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
+import { useCustomers } from "@/features/customers/hooks";
+import { useSalesMetrics } from "@/features/sales/hooks";
+import { useOutstandingBalances } from "@/features/payments/hooks";
+import { useProducts } from "@/features/inventory/hooks";
 
 const Dashboard = () => {
+  // Fetch real data
+  const { data: customers = [] } = useCustomers({ search: "", limit: 1000, offset: 0 });
+  const { data: salesMetrics } = useSalesMetrics(7);
+  const { data: outstandingBalances = [] } = useOutstandingBalances();
+  const { data: inventory = [] } = useProducts({ search: "", limit: 1000, offset: 0 });
+
+  // Calculate metrics
+  const totalCustomers = customers.length;
+  const totalInventoryItems = inventory.length;
+  const lowStockItems = inventory.filter(item => item.stock <= 10).length;
+  const totalOutstanding = outstandingBalances.reduce((sum, customer) => sum + customer.total_outstanding, 0);
+  const overdueCustomers = outstandingBalances.filter(customer => customer.overdue_amount > 0).length;
+
   const stats = [
     {
       title: "Total Customers",
-      value: "2,456",
-      description: "+20.1% from last month",
+      value: totalCustomers.toLocaleString(),
+      description: `${customers.filter(c => c.status === 'Active').length} active customers`,
       icon: Users,
       color: "text-primary"
     },
     {
       title: "Inventory Items",
-      value: "12,847",
-      description: "8 items low stock",
+      value: totalInventoryItems.toLocaleString(),
+      description: `${lowStockItems} items low stock`,
       icon: Package,
       color: "text-success"
     },
     {
       title: "Today's Sales",
-      value: "$3,249",
-      description: "+12% from yesterday",
+      value: `$${(salesMetrics?.revenue_today ?? 0).toFixed(2)}`,
+      description: `${salesMetrics?.sales_today ?? 0} sales today`,
       icon: ShoppingCart,
       color: "text-accent"
     },
     {
-      title: "Pending Invoices",
-      value: "23",
-      description: "5 overdue",
-      icon: FileText,
+      title: "Outstanding Balance",
+      value: `$${totalOutstanding.toFixed(2)}`,
+      description: `${overdueCustomers} customers overdue`,
+      icon: DollarSign,
       color: "text-warning"
     }
   ];
@@ -60,32 +77,26 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Recent Activity
+              Outstanding Balances
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New customer registered</p>
-                  <p className="text-xs text-muted-foreground">2 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-success rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Sale completed - $234</p>
-                  <p className="text-xs text-muted-foreground">15 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="w-2 h-2 bg-warning rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Low stock alert - Grade A Large</p>
-                  <p className="text-xs text-muted-foreground">1 hour ago</p>
-                </div>
-              </div>
+              {outstandingBalances.length > 0 ? (
+                outstandingBalances.slice(0, 3).map((customer) => (
+                  <div key={customer.customer_id} className="flex items-center space-x-4">
+                    <div className="w-2 h-2 bg-warning rounded-full"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{customer.customer_name} owes ${customer.total_outstanding.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {customer.overdue_amount > 0 ? `$${customer.overdue_amount.toFixed(2)} overdue` : 'Not overdue'}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No outstanding balances</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -99,18 +110,32 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                <p className="text-sm font-medium text-warning-foreground">Low Stock Alert</p>
-                <p className="text-xs text-muted-foreground">8 items are running low on stock</p>
-              </div>
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <p className="text-sm font-medium text-destructive-foreground">Overdue Invoices</p>
-                <p className="text-xs text-muted-foreground">5 invoices are overdue for payment</p>
-              </div>
-              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                <p className="text-sm font-medium text-primary-foreground">System Update</p>
-                <p className="text-xs text-muted-foreground">New features available in inventory management</p>
-              </div>
+              {lowStockItems > 0 && (
+                <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                  <p className="text-sm font-medium text-warning-foreground">Low Stock Alert</p>
+                  <p className="text-xs text-muted-foreground">{lowStockItems} items are running low on stock</p>
+                </div>
+              )}
+              {overdueCustomers > 0 && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-sm font-medium text-destructive-foreground">Overdue Payments</p>
+                  <p className="text-xs text-muted-foreground">{overdueCustomers} customers have overdue payments</p>
+                </div>
+              )}
+              {salesMetrics && salesMetrics.revenue_7d > 0 && (
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm font-medium text-primary-foreground">Weekly Performance</p>
+                  <p className="text-xs text-muted-foreground">
+                    ${salesMetrics.revenue_7d.toFixed(2)} revenue from {salesMetrics.sales_count_7d} sales this week
+                  </p>
+                </div>
+              )}
+              {lowStockItems === 0 && overdueCustomers === 0 && (
+                <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
+                  <p className="text-sm font-medium text-success-foreground">All Good!</p>
+                  <p className="text-xs text-muted-foreground">No urgent alerts at this time</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

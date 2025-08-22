@@ -10,51 +10,54 @@ import { Package, Plus, Minus, AlertTriangle, TrendingUp, TrendingDown } from "l
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/features/inventory/types";
 import { getStockStatus } from "@/features/inventory/utils";
+import { useMoveStock } from "@/features/inventory/hooks";
 
 interface StockControlDialogProps {
   product: Product;
+  /** pass the same params used by useProducts so invalidation is exact */
+  paramsForInvalidate?: { search?: string; limit?: number; offset?: number };
 }
 
-export default function StockControlDialog({ product }: StockControlDialogProps) {
+export default function StockControlDialog({ product, paramsForInvalidate = { search: "", limit: 100, offset: 0 } }: StockControlDialogProps) {
   const [open, setOpen] = useState(false);
-  const [adjustment, setAdjustment] = useState("");
-  const [reason, setReason] = useState("");
+  const [adjustment, setAdjustment] = useState<string>("");
+  const [reason, setReason] = useState<string>("");
   const [adjustmentType, setAdjustmentType] = useState<"add" | "remove">("add");
   const { toast } = useToast();
 
-  const handleStockAdjustment = () => {
-    const adjustmentValue = parseFloat(adjustment);
-    if (isNaN(adjustmentValue) || adjustmentValue <= 0) {
-      toast({
-        title: "Invalid adjustment",
-        description: "Please enter a valid positive number.",
-        variant: "destructive",
-      });
+  const move = useMoveStock(paramsForInvalidate);
+  const loading = move.isPending;
+
+  const handleStockAdjustment = async () => {
+    // quantities are integers in DB; enforce that here
+    const qty = Number.isFinite(Number(adjustment)) ? parseInt(adjustment, 10) : NaN;
+
+    if (!Number.isFinite(qty) || qty <= 0) {
+      toast({ title: "Invalid adjustment", description: "Enter a positive whole number.", variant: "destructive" });
       return;
     }
-
     if (!reason.trim()) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for the stock adjustment.",
-        variant: "destructive",
-      });
+      toast({ title: "Reason required", description: "Provide a reason for the adjustment.", variant: "destructive" });
+      return;
+    }
+    if (adjustmentType === "remove" && qty > product.stock) {
+      toast({ title: "Insufficient stock", description: "You can’t remove more than current stock.", variant: "destructive" });
       return;
     }
 
-    // In a real app, this would call an API to update stock
-    const newStock = adjustmentType === "add" 
-      ? product.stock + adjustmentValue
-      : Math.max(0, product.stock - adjustmentValue);
-
-    toast({
-      title: "Stock updated",
-      description: `${product.name} stock ${adjustmentType === "add" ? "increased" : "decreased"} by ${adjustmentValue} units. New stock: ${newStock}`,
-    });
-
-    setOpen(false);
-    setAdjustment("");
-    setReason("");
+    try {
+      const delta = adjustmentType === "add" ? qty : -qty;
+      await move.mutateAsync({ productId: product.id, delta, reason });
+      toast({
+        title: "Stock updated",
+        description: `${product.name} ${delta > 0 ? "increased" : "decreased"} by ${Math.abs(delta)} units.`,
+      });
+      setOpen(false);
+      setAdjustment("");
+      setReason("");
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err?.message || "Please try again.", variant: "destructive" });
+    }
   };
 
   const stockStatus = getStockStatus(product.stock, product.min_stock);
@@ -74,7 +77,7 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
             Stock Control - {product.name}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Current Stock Information */}
           <Card>
@@ -92,9 +95,9 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
                   <p className="text-2xl font-bold text-warning">{product.min_stock} units</p>
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Stock Value</Label>
@@ -103,10 +106,12 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
                 <div>
                   <Label className="text-muted-foreground">Status</Label>
                   <div className="mt-1">
-                    <Badge variant={
-                      stockStatus === "critical" ? "destructive" :
-                      stockStatus === "low" ? "secondary" : "default"
-                    }>
+                    <Badge
+                      variant={
+                        stockStatus === "critical" ? "destructive" :
+                        stockStatus === "low" ? "secondary" : "default"
+                      }
+                    >
                       {stockStatus === "critical" ? "Critical Low" :
                        stockStatus === "low" ? "Low Stock" : "In Stock"}
                     </Badge>
@@ -121,8 +126,7 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
                     <span className="font-medium">Stock Alert</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Stock is {stockStatus === "critical" ? "critically" : ""} low. 
-                    Consider restocking soon to avoid stockouts.
+                    Stock is {stockStatus === "critical" ? "critically" : ""} low. Consider restocking soon.
                   </p>
                 </div>
               )}
@@ -161,8 +165,9 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
                   placeholder="Enter quantity"
                   value={adjustment}
                   onChange={(e) => setAdjustment(e.target.value)}
-                  min="0"
-                  step="0.01"
+                  min="1"
+                  step="1"         // integers only
+                  inputMode="numeric"
                 />
               </div>
 
@@ -172,10 +177,11 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
                   placeholder="e.g., Stock received, Damage, Sale correction..."
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
+                  maxLength={120}
                 />
               </div>
 
-              {adjustment && !isNaN(parseFloat(adjustment)) && (
+              {adjustment && Number.isFinite(Number(adjustment)) && (
                 <div className="p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     {adjustmentType === "add" ? (
@@ -193,28 +199,28 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
                     <div className="flex justify-between">
                       <span>Adjustment:</span>
                       <span className={adjustmentType === "add" ? "text-success" : "text-warning"}>
-                        {adjustmentType === "add" ? "+" : "-"}{parseFloat(adjustment)} units
+                        {adjustmentType === "add" ? "+" : "-"}{parseInt(adjustment, 10)} units
                       </span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-medium">
                       <span>New Stock:</span>
                       <span>
-                        {adjustmentType === "add" 
-                          ? product.stock + parseFloat(adjustment)
-                          : Math.max(0, product.stock - parseFloat(adjustment))} units
+                        {adjustmentType === "add"
+                          ? product.stock + parseInt(adjustment, 10)
+                          : Math.max(0, product.stock - parseInt(adjustment, 10))} units
                       </span>
                     </div>
                   </div>
                 </div>
               )}
 
-              <Button 
+              <Button
                 onClick={handleStockAdjustment}
                 className="w-full"
-                disabled={!adjustment || !reason.trim()}
+                disabled={loading || !adjustment || !reason.trim()}
               >
-                Apply Stock Adjustment
+                {loading ? "Applying…" : "Apply Stock Adjustment"}
               </Button>
             </CardContent>
           </Card>

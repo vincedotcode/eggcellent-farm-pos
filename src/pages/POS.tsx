@@ -84,9 +84,12 @@ const POS = () => {
     try {
       const isWalkIn = selectedCustomer === "walk-in";
       const { sale_id, subtotal, tax_amount, total } = await checkout.mutateAsync({
-        customerId: isWalkIn ? null : selectedCustomer,
-        cart
+        customerId: selectedCustomer === "walk-in" ? null : selectedCustomer,
+        cart,
+        partialAmount: allowPartialPayment && partialAmount ? parseFloat(partialAmount) : null,
+        note: null
       });
+      
 
       if (allowPartialPayment && partialAmount) {
         const partialPaymentAmount = parseFloat(partialAmount);

@@ -135,7 +135,8 @@ const Inventory = () => {
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <StockControlDialog product={item} />
+                        {/* ✅ pass params so cache invalidation hits the correct query */}
+                        <StockControlDialog product={item} paramsForInvalidate={params} />
                       </div>
                     </TableCell>
                   </TableRow>

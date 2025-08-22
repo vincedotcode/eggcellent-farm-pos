@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { fetchPosProducts, fetchPosCustomers, checkoutSale } from "./api";
-import type { CartItem } from "./types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchPosProducts, fetchPosCustomers, posCheckout } from "./api";
+import type { CartItem, CheckoutArgs, CheckoutResponse } from "./types";
 
 export function usePosProducts(search = "") {
   return useQuery({
@@ -19,8 +19,13 @@ export function usePosCustomers(search = "") {
 }
 
 export function useCheckout() {
-  return useMutation({
-    mutationFn: ({ customerId, cart }: { customerId: string | null; cart: CartItem[] }) =>
-      checkoutSale(customerId, cart),
+  const qc = useQueryClient();
+  return useMutation<CheckoutResponse, any, CheckoutArgs>({
+    mutationFn: (payload) => posCheckout(payload),
+    onSuccess: () => {
+      // Refresh any inventory lists after a sale decremented stock
+      qc.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "products" });
+      qc.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "pos_products" });
+    }
   });
 }

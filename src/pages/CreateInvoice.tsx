@@ -357,9 +357,9 @@ const CreateInvoice = () => {
                       <TableRow key={item.id}>
                         <TableCell>{item.name}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
-                        <TableCell>${item.price.toFixed(2)}</TableCell>
+                        <TableCell>₹{item.price.toFixed(2)}</TableCell>
                         <TableCell>{item.tax}%</TableCell>
-                        <TableCell>${calculateItemTotal(item).toFixed(2)}</TableCell>
+                        <TableCell>₹{calculateItemTotal(item).toFixed(2)}</TableCell>
                         <TableCell>
                           <Button
                             variant="outline"
@@ -428,15 +428,15 @@ const CreateInvoice = () => {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
-                    <span>${calculateInvoiceSubtotal().toFixed(2)}</span>
+                    <span>₹{calculateInvoiceSubtotal().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Tax:</span>
-                    <span>${calculateInvoiceTax().toFixed(2)}</span>
+                    <span>₹{calculateInvoiceTax().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold">
                     <span>Total:</span>
-                    <span>${calculateInvoiceTotal().toFixed(2)}</span>
+                    <span>₹{calculateInvoiceTotal().toFixed(2)}</span>
                   </div>
                 </div>
               )}

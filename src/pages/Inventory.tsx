@@ -9,6 +9,7 @@ import { useProducts } from "@/features/inventory/hooks";
 import { getStockStatus, lowStockCount, totalStockValue } from "@/features/inventory/utils";
 import type { Product } from "@/features/inventory/types";
 import AddProductDialog from "@/components/AddProductDialog";
+import StockControlDialog from "@/components/StockControlDialog";
 
 const PAGE_SIZE = 500;
 
@@ -69,7 +70,7 @@ const Inventory = () => {
               <Package className="h-5 w-5 text-success" />
               <div>
                 <p className="text-sm font-medium">Total Stock Value</p>
-                <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">₹{totalValue.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -126,13 +127,16 @@ const Inventory = () => {
                         <div className="text-muted-foreground">Min: {item.min_stock}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">${Number(item.price).toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">₹{Number(item.price).toFixed(2)}</TableCell>
                     <TableCell>{Number(item.tax_rate).toFixed(1)}%</TableCell>
                     <TableCell>{stockBadge(item.stock, item.min_stock)}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <StockControlDialog product={item} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

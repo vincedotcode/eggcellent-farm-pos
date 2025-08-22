@@ -93,13 +93,13 @@ const POS = () => {
         if (partialPaymentAmount > 0 && partialPaymentAmount < total) {
           toast({ 
             title: "Sale completed with partial payment", 
-            description: `Sale #${sale_id} • Paid $${partialPaymentAmount.toFixed(2)} of $${total.toFixed(2)}. Balance due: $${(total - partialPaymentAmount).toFixed(2)}` 
+            description: `Sale #${sale_id} • Paid ₹${partialPaymentAmount.toFixed(2)} of ₹${total.toFixed(2)}. Balance due: ₹${(total - partialPaymentAmount).toFixed(2)}` 
           });
         } else {
-          toast({ title: "Sale completed", description: `Sale #${sale_id} • Total $${total.toFixed(2)}` });
+          toast({ title: "Sale completed", description: `Sale #${sale_id} • Total ₹${total.toFixed(2)}` });
         }
       } else {
-        toast({ title: "Sale completed", description: `Sale #${sale_id} • Total $${total.toFixed(2)}` });
+        toast({ title: "Sale completed", description: `Sale #${sale_id} • Total ₹${total.toFixed(2)}` });
       }
       
       setCart([]);
@@ -148,7 +148,7 @@ const POS = () => {
                       <div className="flex-1">
                         <h3 className="font-medium">{product.name}</h3>
                         <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
-                        <p className="text-lg font-bold text-primary">${Number(product.price).toFixed(2)}</p>
+                        <p className="text-lg font-bold text-primary">₹{Number(product.price).toFixed(2)}</p>
                       </div>
                       <Button onClick={() => addToCart(product)} size="sm" disabled={product.stock === 0}>
                         <Plus className="h-4 w-4" />
@@ -220,7 +220,7 @@ const POS = () => {
                     <div className="flex-1">
                       <p className="font-medium text-sm">{item.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        ${item.price.toFixed(2)} each • Tax {item.tax_rate}%
+                        ₹{item.price.toFixed(2)} each • Tax {item.tax_rate}%
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -245,15 +245,15 @@ const POS = () => {
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Tax:</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>₹{tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold">
                   <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
                 
                 {/* Partial Payment Option */}
@@ -281,11 +281,11 @@ const POS = () => {
                         max={total}
                         value={partialAmount}
                         onChange={(e) => setPartialAmount(e.target.value)}
-                        placeholder={`Max: $${total.toFixed(2)}`}
+                        placeholder={`Max: ₹${total.toFixed(2)}`}
                       />
                       {partialAmount && parseFloat(partialAmount) > 0 && (
                         <div className="text-xs text-muted-foreground">
-                          Balance due: ${(total - parseFloat(partialAmount)).toFixed(2)}
+                          Balance due: ₹{(total - parseFloat(partialAmount)).toFixed(2)}
                         </div>
                       )}
                     </div>

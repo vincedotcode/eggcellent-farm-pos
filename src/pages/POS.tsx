@@ -80,42 +80,64 @@ const POS = () => {
       toast({ title: "Customer required", description: "Select a customer (or Walk-in).", variant: "destructive" });
       return;
     }
-
+  
+    // local totals are only for UI validation; DB computes authoritative totals
+    const localTotal = total;
+  
+    let payNow: number | null = null;
+    if (allowPartialPayment) {
+      const p = parseFloat(partialAmount);
+      if (!Number.isFinite(p) || p <= 0) {
+        toast({ title: "Invalid payment", description: "Enter a positive payment amount.", variant: "destructive" });
+        return;
+      }
+      if (p > localTotal) {
+        toast({ title: "Too much", description: "Payment cannot exceed the total.", variant: "destructive" });
+        return;
+      }
+      payNow = p;
+    } else {
+      // Treat as paid-in-full when the toggle is OFF
+      payNow = localTotal;
+    }
+  
     try {
       const isWalkIn = selectedCustomer === "walk-in";
-      const { sale_id, subtotal, tax_amount, total } = await checkout.mutateAsync({
-        customerId: selectedCustomer === "walk-in" ? null : selectedCustomer,
+      const custName =
+        (!isWalkIn && customers.find(c => c.id === selectedCustomer)?.name) || "Walk-in Customer";
+  
+      const { sale_id, total: serverTotal } = await checkout.mutateAsync({
+        customerId: isWalkIn ? null : selectedCustomer,
         cart,
-        partialAmount: allowPartialPayment && partialAmount ? parseFloat(partialAmount) : null,
-        note: null
+        partialAmount: payNow,                       // 👈 send payment to backend
+        note: `POS sale - ${custName}`               // 👈 useful on movements/payments
       });
-      
-
-      if (allowPartialPayment && partialAmount) {
-        const partialPaymentAmount = parseFloat(partialAmount);
-        if (partialPaymentAmount > 0 && partialPaymentAmount < total) {
-          toast({ 
-            title: "Sale completed with partial payment", 
-            description: `Sale #${sale_id} • Paid Rs ${partialPaymentAmount.toFixed(2)} of Rs ${total.toFixed(2)}. Balance due: Rs ${(total - partialPaymentAmount).toFixed(2)}` 
-          });
-        } else {
-          toast({ title: "Sale completed", description: `Sale #${sale_id} • Total Rs ${total.toFixed(2)}` });
-        }
+  
+      // UI feedback based on server total and what we paid now
+      const paid = Math.min(payNow ?? 0, serverTotal);
+      const balance = Math.max(serverTotal - paid, 0);
+  
+      if (balance > 0) {
+        toast({
+          title: "Sale completed (partial)",
+          description: `Sale #${sale_id.slice(0,8)} • Paid Rs ${paid.toFixed(2)} • Balance Rs ${balance.toFixed(2)}`
+        });
       } else {
-        toast({ title: "Sale completed", description: `Sale #${sale_id} • Total Rs ${total.toFixed(2)}` });
+        toast({
+          title: "Sale paid in full",
+          description: `Sale #${sale_id.slice(0,8)} • Total Rs ${serverTotal.toFixed(2)}`
+        });
       }
-      
+  
+      // Reset UI
       setCart([]);
       setPartialAmount("");
       setAllowPartialPayment(false);
     } catch (e: any) {
-      toast({
-        title: "Checkout failed",
-        description: e?.message ?? "Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: "Checkout failed", description: e?.message ?? "Please try again.", variant: "destructive" });
     }
   };
+  
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

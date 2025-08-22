@@ -23,9 +23,12 @@ export function useCheckout() {
   return useMutation<CheckoutResponse, any, CheckoutArgs>({
     mutationFn: (payload) => posCheckout(payload),
     onSuccess: () => {
-      // Refresh any inventory lists after a sale decremented stock
+      // Inventory lists (stock adjusted by sale)
       qc.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "products" });
       qc.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "pos_products" });
+      // ✅ Also refresh Sales so Paid/Balance update immediately
+      qc.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "sales" });
     }
   });
 }
+

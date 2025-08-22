@@ -14,6 +14,8 @@ export function useAddPayment() {
       if (data.customer_id) {
         queryClient.invalidateQueries({ queryKey: ["customer_balance", data.customer_id] });
       }
+      queryClient.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "sales" }); // ✅
+
       queryClient.invalidateQueries({ queryKey: ["outstanding_balances"] });
     },
   });

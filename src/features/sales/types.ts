@@ -1,14 +1,17 @@
 export type SaleRow = {
-    id: string;
-    created_at: string;
-    customer_id: string | null;
-    customer_name: string | null;
-    subtotal: number;
-    tax_amount: number;
-    total: number;
-    item_count: number;
-  };
-  
+  id: string;
+  created_at: string;
+  customer_id: string | null;
+  customer_name: string | null;
+  subtotal: number;
+  tax_amount: number;
+  total: number;
+  item_count: number;
+  // NEW
+  paid_total: number;    // sum(sale_payments.amount_paid)
+  balance_due: number;   // max(total - paid_total, 0)
+};
+
   export type SaleItem = {
     id: string;
     sale_id: string;

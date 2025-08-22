@@ -159,6 +159,7 @@ export default function Sales() {
                         saleId={r.id}
                         customerName={r.customer_name}
                         createdAt={r.created_at}
+                        saleTotal={r.total}
                         trigger={
                           <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4" />

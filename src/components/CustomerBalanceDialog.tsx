@@ -59,7 +59,7 @@ export default function CustomerBalanceDialog({ customer }: CustomerBalanceDialo
                     ) : (
                       <>
                         <CheckCircle className="h-4 w-4 text-success" />
-                        <span className="text-2xl font-bold text-success">₹0.00</span>
+                        <span className="text-2xl font-bold text-success">Rs 0.00</span>
                       </>
                     )}
                   </div>

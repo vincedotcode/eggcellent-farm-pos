@@ -49,7 +49,7 @@ const PaymentDialog = ({ saleId, customerId, customerName, balanceDue, trigger, 
       if (amount > balanceDue) {
         toast({
           title: "Amount exceeds balance",
-          description: `Payment amount cannot exceed balance due of ₹${balanceDue.toFixed(2)}.`,
+          description: `Payment amount cannot exceed balance due of Rs ${balanceDue.toFixed(2)}.`,
           variant: "destructive",
         });
         return;
@@ -65,7 +65,7 @@ const PaymentDialog = ({ saleId, customerId, customerName, balanceDue, trigger, 
 
       toast({
         title: "Payment recorded",
-        description: `Payment of ₹${amount.toFixed(2)} has been recorded.`,
+        description: `Payment of Rs ${amount.toFixed(2)} has been recorded.`,
       });
 
       onPaymentAdded?.();
@@ -111,7 +111,7 @@ const PaymentDialog = ({ saleId, customerId, customerName, balanceDue, trigger, 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Balance Due: <span className="font-bold text-primary">₹{balanceDue.toFixed(2)}</span></Label>
+            <Label>Balance Due: <span className="font-bold text-primary">Rs {balanceDue.toFixed(2)}</span></Label>
           </div>
 
           <div className="space-y-2">

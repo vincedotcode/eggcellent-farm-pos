@@ -129,7 +129,7 @@ const Invoices = () => {
           <CardContent className="p-4">
             <div>
               <p className="text-sm font-medium text-success">Paid Revenue</p>
-              <p className="text-2xl font-bold text-success">₹{getTotalRevenue().toFixed(2)}</p>
+              <p className="text-2xl font-bold text-success">Rs {getTotalRevenue().toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -137,7 +137,7 @@ const Invoices = () => {
           <CardContent className="p-4">
             <div>
               <p className="text-sm font-medium text-warning">Pending</p>
-              <p className="text-2xl font-bold text-warning">₹{getPendingAmount().toFixed(2)}</p>
+              <p className="text-2xl font-bold text-warning">Rs {getPendingAmount().toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -145,7 +145,7 @@ const Invoices = () => {
           <CardContent className="p-4">
             <div>
               <p className="text-sm font-medium text-destructive">Overdue</p>
-              <p className="text-2xl font-bold text-destructive">₹{getOverdueAmount().toFixed(2)}</p>
+              <p className="text-2xl font-bold text-destructive">Rs {getOverdueAmount().toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
@@ -199,7 +199,7 @@ const Invoices = () => {
                   <TableCell>{invoice.customer}</TableCell>
                   <TableCell>{invoice.date}</TableCell>
                   <TableCell>{invoice.dueDate}</TableCell>
-                  <TableCell className="font-medium">₹{invoice.total.toFixed(2)}</TableCell>
+                  <TableCell className="font-medium">Rs {invoice.total.toFixed(2)}</TableCell>
                   <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

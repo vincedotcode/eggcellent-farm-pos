@@ -148,7 +148,7 @@ function CustomerRow({ customer, onDelete }: { customer: Customer; onDelete: (cu
       <TableCell>
         <div className="space-y-1">
           <p className="text-sm font-medium">{customer.total_orders || 0}</p>
-          <p className="text-sm text-muted-foreground">₹{(customer.total_spent || 0).toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground">Rs {(customer.total_spent || 0).toFixed(2)}</p>
         </div>
       </TableCell>
       <TableCell>
@@ -159,15 +159,15 @@ function CustomerRow({ customer, onDelete }: { customer: Customer; onDelete: (cu
                 {balance.total_outstanding > 0 ? (
                   <>
                     <DollarSign className="h-3 w-3 text-warning" />
-                    ₹{balance.total_outstanding.toFixed(2)}
+                    Rs {balance.total_outstanding.toFixed(2)}
                   </>
                 ) : (
-                  <span className="text-success">₹0.00</span>
+                  <span className="text-success">Rs 0.00</span>
                 )}
               </p>
               {balance.overdue_amount > 0 && (
                 <p className="text-xs text-destructive">
-                  ₹{balance.overdue_amount.toFixed(2)} overdue
+                  Rs {balance.overdue_amount.toFixed(2)} overdue
                 </p>
               )}
             </>

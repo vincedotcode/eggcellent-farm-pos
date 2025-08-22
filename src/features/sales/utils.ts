@@ -1,5 +1,5 @@
 export const fmtMoney = (n: number | string) =>
-    `₹${Number(n ?? 0).toFixed(2)}`;
+    `Rs ${Number(n ?? 0).toFixed(2)}`;
   
   export const shortId = (id: string) => id?.slice(0, 8);
   

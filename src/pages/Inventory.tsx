@@ -70,7 +70,7 @@ const Inventory = () => {
               <Package className="h-5 w-5 text-success" />
               <div>
                 <p className="text-sm font-medium">Total Stock Value</p>
-                <p className="text-2xl font-bold">₹{totalValue.toLocaleString()}</p>
+                <p className="text-2xl font-bold">Rs {totalValue.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -127,7 +127,7 @@ const Inventory = () => {
                         <div className="text-muted-foreground">Min: {item.min_stock}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">₹{Number(item.price).toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">Rs {Number(item.price).toFixed(2)}</TableCell>
                     <TableCell>{Number(item.tax_rate).toFixed(1)}%</TableCell>
                     <TableCell>{stockBadge(item.stock, item.min_stock)}</TableCell>
                     <TableCell>

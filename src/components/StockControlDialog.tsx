@@ -98,7 +98,7 @@ export default function StockControlDialog({ product }: StockControlDialogProps)
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Stock Value</Label>
-                  <p className="text-xl font-semibold">₹{stockValue.toFixed(2)}</p>
+                  <p className="text-xl font-semibold">Rs {stockValue.toFixed(2)}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Status</Label>

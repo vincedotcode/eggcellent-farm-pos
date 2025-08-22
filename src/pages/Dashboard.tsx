@@ -36,14 +36,14 @@ const Dashboard = () => {
     },
     {
       title: "Today's Sales",
-      value: `₹${(salesMetrics?.revenue_today ?? 0).toFixed(2)}`,
+      value: `Rs ${(salesMetrics?.revenue_today ?? 0).toFixed(2)}`,
       description: `${salesMetrics?.sales_today ?? 0} sales today`,
       icon: ShoppingCart,
       color: "text-accent"
     },
     {
       title: "Outstanding Balance",
-      value: `₹${totalOutstanding.toFixed(2)}`,
+      value: `Rs ${totalOutstanding.toFixed(2)}`,
       description: `${overdueCustomers} customers overdue`,
       icon: DollarSign,
       color: "text-warning"
@@ -87,9 +87,9 @@ const Dashboard = () => {
                   <div key={customer.customer_id} className="flex items-center space-x-4">
                     <div className="w-2 h-2 bg-warning rounded-full"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{customer.customer_name} owes ₹{customer.total_outstanding.toFixed(2)}</p>
+                      <p className="text-sm font-medium">{customer.customer_name} owes Rs {customer.total_outstanding.toFixed(2)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {customer.overdue_amount > 0 ? `₹${customer.overdue_amount.toFixed(2)} overdue` : 'Not overdue'}
+                        {customer.overdue_amount > 0 ? `Rs ${customer.overdue_amount.toFixed(2)} overdue` : 'Not overdue'}
                       </p>
                     </div>
                   </div>
@@ -126,7 +126,7 @@ const Dashboard = () => {
                 <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
                   <p className="text-sm font-medium text-primary-foreground">Weekly Performance</p>
                   <p className="text-xs text-muted-foreground">
-                    ₹{salesMetrics.revenue_7d.toFixed(2)} revenue from {salesMetrics.sales_count_7d} sales this week
+                    Rs {salesMetrics.revenue_7d.toFixed(2)} revenue from {salesMetrics.sales_count_7d} sales this week
                   </p>
                 </div>
               )}

@@ -71,20 +71,9 @@ const handleLogin = async (e: React.FormEvent) => {
             <Button type="submit" className="w-full">
               Sign In
             </Button>
-            <Button 
-              type="button" 
-              variant="secondary" 
-              className="w-full mt-2"
-              onClick={handleDemoLogin}
-            >
-              Demo Access (No Login Required)
-            </Button>
+      
           </form>
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Demo mode - Connect Supabase for full functionality
-            </p>
-          </div>
+         
         </CardContent>
       </Card>
     </div>

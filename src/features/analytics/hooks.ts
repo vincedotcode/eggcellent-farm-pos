@@ -1,20 +1,26 @@
+// /src/features/analytics/hooks.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  getCustomerAnalytics, 
-  getInventoryAnalytics, 
-  getSalesAnalytics, 
+import {
+  getCustomerAnalytics,
+  getInventoryAnalytics,
+  getSalesAnalytics,
   getFinancialAnalytics,
   getTopProducts,
   getCustomerSegments,
   bulkUpdateLowStock,
-  markAllBalancesPaid
+  markAllBalancesPaid,
 } from "./api";
 
+const DEFAULT_STALE = 30_000;
+const REFRESH = 60_000;
+
+/** Queries */
 export function useCustomerAnalytics() {
   return useQuery({
     queryKey: ["customer_analytics"],
     queryFn: getCustomerAnalytics,
-    staleTime: 30_000,
+    staleTime: DEFAULT_STALE,
+    refetchInterval: REFRESH,
   });
 }
 
@@ -22,7 +28,8 @@ export function useInventoryAnalytics() {
   return useQuery({
     queryKey: ["inventory_analytics"],
     queryFn: getInventoryAnalytics,
-    staleTime: 30_000,
+    staleTime: DEFAULT_STALE,
+    refetchInterval: REFRESH,
   });
 }
 
@@ -30,7 +37,8 @@ export function useSalesAnalytics(days = 30) {
   return useQuery({
     queryKey: ["sales_analytics", days],
     queryFn: () => getSalesAnalytics(days),
-    staleTime: 30_000,
+    staleTime: DEFAULT_STALE,
+    refetchInterval: REFRESH,
   });
 }
 
@@ -38,7 +46,8 @@ export function useFinancialAnalytics() {
   return useQuery({
     queryKey: ["financial_analytics"],
     queryFn: getFinancialAnalytics,
-    staleTime: 30_000,
+    staleTime: DEFAULT_STALE,
+    refetchInterval: REFRESH,
   });
 }
 
@@ -47,6 +56,7 @@ export function useTopProducts(limit = 5) {
     queryKey: ["top_products", limit],
     queryFn: () => getTopProducts(limit),
     staleTime: 60_000,
+    refetchInterval: REFRESH,
   });
 }
 
@@ -55,12 +65,13 @@ export function useCustomerSegments() {
     queryKey: ["customer_segments"],
     queryFn: getCustomerSegments,
     staleTime: 60_000,
+    refetchInterval: REFRESH,
   });
 }
 
+/** Mutations (needed by QuickActions.tsx) */
 export function useBulkUpdateLowStock() {
   const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: bulkUpdateLowStock,
     onSuccess: () => {
@@ -72,12 +83,12 @@ export function useBulkUpdateLowStock() {
 
 export function useMarkAllBalancesPaid() {
   const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: markAllBalancesPaid,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["financial_analytics"] });
       queryClient.invalidateQueries({ queryKey: ["outstanding_balances"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
   });
 }

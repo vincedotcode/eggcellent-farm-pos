@@ -28,9 +28,9 @@ export async function listSales(params: SalesQuery): Promise<SaleRow[]> {
 export async function getSaleItems(saleId: string): Promise<SaleItem[]> {
   const { data, error } = await supabase
     .from("sale_items")
-    .select("id,sale_id,product_id,product_name,quantity,price,tax_rate,created_at")
+    .select("id,sale_id,product_id,product_name,quantity,price,tax_rate") // no created_at
     .eq("sale_id", saleId)
-    .order("created_at", { ascending: true });
+    .order("id", { ascending: true });
 
   if (error) throw error;
   return (data ?? []).map((it: any) => ({

@@ -4,12 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, AlertTriangle, Package } from "lucide-react";
-import { useProducts } from "@/features/inventory/hooks";
+import { Plus, Search, Edit, AlertTriangle, Package, Trash } from "lucide-react";
+import { useProducts, useDeleteProduct } from "@/features/inventory/hooks";
 import { getStockStatus, lowStockCount, totalStockValue } from "@/features/inventory/utils";
 import type { Product } from "@/features/inventory/types";
 import AddProductDialog from "@/components/AddProductDialog";
 import StockControlDialog from "@/components/StockControlDialog";
+import { useToast } from "@/hooks/use-toast";
+import DeleteProductButton from "@/components/DeleteProductButton";
+
 
 const PAGE_SIZE = 500;
 
@@ -22,6 +25,9 @@ const Inventory = () => {
 
   const lowCount = lowStockCount(inventory);
   const totalValue = totalStockValue(inventory);
+
+  const { toast } = useToast();
+  const delProduct = useDeleteProduct(params);
 
   const stockBadge = (stock: number, minStock: number) => {
     const status = getStockStatus(stock, minStock);
@@ -132,11 +138,10 @@ const Inventory = () => {
                     <TableCell>{stockBadge(item.stock, item.min_stock)}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
                         {/* ✅ pass params so cache invalidation hits the correct query */}
                         <StockControlDialog product={item} paramsForInvalidate={params} />
+                        <DeleteProductButton product={item} paramsForInvalidate={params} />
+
                       </div>
                     </TableCell>
                   </TableRow>

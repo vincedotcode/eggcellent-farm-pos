@@ -103,3 +103,18 @@ export async function listStockMovements(params: MovementsParams = {}): Promise<
   if (error) throw error;
   return (data ?? []) as StockMovement[];
 }
+
+
+export async function deleteProduct(id: UUID): Promise<void> {
+  const { error } = await supabase.rpc("admin_delete_product", { p_id: id });
+
+  if (error) {
+    // FK violation (referenced by sale_items/stock_movements, etc.)
+    if ((error as any).code === "23503") {
+      throw new Error(
+        "Cannot delete this product because it’s referenced by sales or stock movements."
+      );
+    }
+    throw error;
+  }
+}

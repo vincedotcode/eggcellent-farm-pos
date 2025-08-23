@@ -8,8 +8,6 @@ import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Inventory from "./pages/Inventory";
 import POS from "./pages/POS";
-import Invoices from "./pages/Invoices";
-import CreateInvoice from "./pages/CreateInvoice";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -72,24 +70,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-
-            <Route
-              path="/invoices"
-              element={
-                <ProtectedRoute>
-                  <Layout><Invoices /></Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-invoice"
-              element={
-                <ProtectedRoute>
-                  <Layout><CreateInvoice /></Layout>
-                </ProtectedRoute>
-              }
-            />
-
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

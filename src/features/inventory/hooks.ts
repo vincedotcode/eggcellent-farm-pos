@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listProducts, createProduct, updateProduct,
-  moveStock, setStock, listStockMovements
+  moveStock, setStock, listStockMovements, deleteProduct
 } from "./api";
 import type { ListParams, MovementsParams, Product, ProductInsert } from "./types";
 
@@ -75,5 +75,40 @@ export function useStockMovements(params: MovementsParams = {}) {
     queryKey: qkMovements(params),
     queryFn: () => listStockMovements(params),
     staleTime: 15_000
+  });
+}
+
+
+export function useDeleteProduct(paramsToInvalidate: ListParams = {}) {
+  const qc = useQueryClient();
+  const key = qkProducts(paramsToInvalidate);
+
+  return useMutation({
+    mutationFn: (id: string) => deleteProduct(id),
+
+    // optimistic remove from the current page of products
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Product[]>(key);
+      if (prev) {
+        qc.setQueryData<Product[]>(
+          key,
+          prev.filter(p => p.id !== id)
+        );
+      }
+      return { prev };
+    },
+
+    // rollback if it fails
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData<Product[]>(key, ctx.prev);
+    },
+
+    // final refresh
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key });
+      // also invalidate any other product lists you might have open
+      qc.invalidateQueries({ predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === "products" });
+    },
   });
 }

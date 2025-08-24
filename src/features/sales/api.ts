@@ -41,10 +41,19 @@ export async function getSaleItems(saleId: string): Promise<SaleItem[]> {
   })) as SaleItem[];
 }
 
-export async function fetchSalesMetrics(days = 7): Promise<SalesMetrics> {
+export async function fetchSalesMetrics(days = 7): Promise<SalesMetrics | null> {
   const { data, error } = await supabase.rpc("sales_metrics", { p_days: days });
   if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
-  // Assume numeric coercion server-side or coerce here if needed
-  return row as SalesMetrics;
+  const row: any = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+
+  return {
+    start_date: String(row.start_date),
+    end_date: String(row.end_date),
+    orders_count: Number(row.orders_count ?? 0),
+    total_revenue: Number(row.total_revenue ?? 0),
+    total_paid: Number(row.total_paid ?? 0),
+    outstanding: Number(row.outstanding ?? 0),
+    avg_order_value: Number(row.avg_order_value ?? 0),
+  };
 }

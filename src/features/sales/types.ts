@@ -30,14 +30,14 @@ export type SaleRow = {
     limit?: number;
     offset?: number;
   };
-  
-  export type SalesMetrics = {
-    sales_count_7d: number;
-    revenue_7d: number;
-    aov_7d: number;
-    sales_today: number;
-    revenue_today: number;
-    top_product_name: string | null;
-    top_product_qty: number;
-  };
-  
+// types.ts
+// types.ts
+export type SalesMetrics = {
+  start_date: string;     // e.g. "2025-08-18"
+  end_date: string;       // e.g. "2025-08-24"
+  orders_count: number;   // 7-day order count
+  total_revenue: number;  // 7-day gross revenue
+  total_paid: number;     // 7-day payments received
+  outstanding: number;    // 7-day revenue minus paid
+  avg_order_value: number;// 7-day AOV
+};

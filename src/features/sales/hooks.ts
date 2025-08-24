@@ -22,7 +22,7 @@ export function useSaleItems(saleId: string | null) {
   });
 }
 
-export function useSalesMetrics(days = 7) {
+export function useSalesMetrics(days = 1) {
   return useQuery({
     queryKey: ["sales_metrics", days],
     queryFn: () => fetchSalesMetrics(days),

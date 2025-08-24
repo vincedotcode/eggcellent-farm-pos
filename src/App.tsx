@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./providers/AuthProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Sales from "./pages/Sales";
+import { PWAInstallDrawer } from "@/components/PWAInstallDrawer";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAInstallDrawer />
       <AuthProvider>
         <BrowserRouter>
           <Routes>

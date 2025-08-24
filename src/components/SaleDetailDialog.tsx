@@ -16,7 +16,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
+// ✨ NEW
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 type Method = "Cash" | "Card" | "Check" | "Bank Transfer";
+
+const STORE = {
+  name: "EggPro ERP",
+  address: "Main Road, Your City",
+  phone: "+230 0000000",
+  email: "billing@eggpro.example"
+};
 
 export default function SaleDetailDialog({
   saleId,
@@ -29,7 +40,7 @@ export default function SaleDetailDialog({
   trigger
 }: {
   saleId: string;
-  customerId?: string | null;            // NEW: required for payments
+  customerId?: string | null;
   customerName: string | null;
   createdAt: string;
   saleTotal: number;
@@ -94,113 +105,173 @@ export default function SaleDetailDialog({
     }
   };
 
-  /** ---------- Downloads ---------- */
-  function downloadHTML(filename: string, html: string) {
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+  /** ---------- PDF HELPERS (invoice & receipt) ---------- */
 
-  function invoiceHTML() {
-    const rows = items.map(i => `
-      <tr>
-        <td>${i.product_name}</td>
-        <td style="text-align:right">${i.quantity}</td>
-        <td style="text-align:right">${fmtMoney(i.price)}</td>
-        <td style="text-align:right">${i.tax_rate}%</td>
-        <td style="text-align:right">${fmtMoney(i.price * i.quantity * (1 + i.tax_rate/100))}</td>
-      </tr>`).join("");
+  const invoicePdf = () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-    const payRows = payments.map(p => `
-      <tr>
-        <td>${new Date(p.payment_date).toLocaleString()}</td>
-        <td>${p.payment_method}</td>
-        <td style="text-align:right">${fmtMoney(p.amount_paid)}</td>
-        <td>${p.notes ?? ""}</td>
-      </tr>`).join("");
+    // Header
+    doc.setFontSize(18);
+    doc.text("INVOICE", 14, 16);
+    doc.setFontSize(10);
+    doc.text(STORE.name, 14, 24);
+    doc.text(STORE.address, 14, 29);
+    doc.text(`${STORE.phone} • ${STORE.email}`, 14, 34);
 
-    return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<title>Invoice #${saleId.slice(0,8)}</title>
-<style>
-  body{font-family:Inter,system-ui,Arial,sans-serif;padding:24px;color:#111827}
-  h1{margin:0 0 8px 0} .muted{color:#6b7280}
-  table{border-collapse:collapse;width:100%} th,td{padding:8px;border-bottom:1px solid #eee}
-  .right{text-align:right} .total{font-weight:700}
-  .card{border:1px solid #eee;border-radius:12px;padding:16px;margin-top:16px}
-</style>
-</head>
-<body>
-  <h1>Invoice <span class="muted">#${saleId.slice(0,8)}</span></h1>
-  <div class="muted">${new Date(createdAt).toLocaleString()} • ${customerName ?? "Walk-in Customer"}</div>
+    const right = (txt: string, y: number) => doc.text(txt, pageWidth - 14, y, { align: "right" });
+    right(`Invoice #${saleId.slice(0, 8)}`, 16);
+    right(new Date(createdAt).toLocaleString(), 22);
+    right(isPaid ? "Status: PAID" : "Status: DUE", 28);
 
-  <div class="card">
-    <table>
-      <thead>
-        <tr><th>Item</th><th class="right">Qty</th><th class="right">Price</th><th class="right">Tax %</th><th class="right">Line Total</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <table style="margin-top:12px">
-      <tbody>
-        <tr><td>Subtotal</td><td class="right">${fmtMoney(subtotal)}</td></tr>
-        <tr><td>Tax</td><td class="right">${fmtMoney(tax)}</td></tr>
-        <tr><td class="total">Total</td><td class="right total">${fmtMoney(calculatedTotal)}</td></tr>
-        <tr><td>Paid</td><td class="right">${fmtMoney(totalPaid)}</td></tr>
-        <tr><td>Balance</td><td class="right">${fmtMoney(Math.max(calculatedTotal - totalPaid, 0))}</td></tr>
-      </tbody>
-    </table>
-  </div>
+    // Customer block
+    doc.setFontSize(11);
+    doc.text("Bill To:", 14, 44);
+    doc.setFontSize(10);
+    doc.text(customerName ?? "Walk-in Customer", 14, 50);
 
-  ${payments.length ? `
-  <div class="card">
-    <h3>Payments</h3>
-    <table>
-      <thead><tr><th>Date</th><th>Method</th><th class="right">Amount</th><th>Notes</th></tr></thead>
-      <tbody>${payRows}</tbody>
-    </table>
-  </div>` : ""}
+    // Items table
+    const itemRows = items.map(i => ([
+      i.product_name,
+      String(i.quantity),
+      fmtMoney(i.price),
+      `${i.tax_rate}%`,
+      fmtMoney(i.price * i.quantity * (1 + i.tax_rate / 100)),
+    ]));
 
-</body>
-</html>`;
-  }
+    autoTable(doc, {
+      startY: 58,
+      head: [["Item", "Qty", "Price", "Tax %", "Line Total"]],
+      body: itemRows,
+      styles: { fontSize: 10, cellPadding: 2 },
+      headStyles: { fillColor: [245, 245, 245], textColor: 0 },
+      columnStyles: {
+        1: { halign: "right", cellWidth: 18 },
+        2: { halign: "right", cellWidth: 28 },
+        3: { halign: "right", cellWidth: 20 },
+        4: { halign: "right", cellWidth: 32 },
+      }
+    });
 
-  function receiptHTML() {
-    const latest = payments[0];
-    const paidNow = latest ? latest.amount_paid : totalPaid;
-    return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<title>Receipt #${saleId.slice(0,8)}</title>
-<style>
-  body{font-family:Inter,system-ui,Arial,sans-serif;padding:24px;color:#111827}
-  .muted{color:#6b7280}
-  .row{display:flex;justify-content:space-between;margin:6px 0}
-  .big{font-size:18px;font-weight:700}
-  .card{border:1px solid #eee;border-radius:12px;padding:16px;margin-top:16px}
-</style>
-</head>
-<body>
-  <div class="big">Receipt</div>
-  <div class="muted">Sale #${saleId.slice(0,8)} • ${new Date(createdAt).toLocaleString()}</div>
-  <div class="muted">${customerName ?? "Walk-in Customer"}</div>
+    let y = (doc as any).lastAutoTable.finalY || 58;
 
-  <div class="card">
-    <div class="row"><div>Total</div><div>${fmtMoney(saleTotal)}</div></div>
-    <div class="row"><div>Paid ${latest ? `(latest)` : ``}</div><div>${fmtMoney(paidNow)}</div></div>
-    <div class="row"><div>Balance</div><div>${fmtMoney(Math.max(saleTotal - totalPaid, 0))}</div></div>
-  </div>
-</body>
-</html>`;
-  }
+    // Totals
+    y += 6;
+    doc.setFontSize(10);
+    right(`Subtotal: ${fmtMoney(subtotal)}`, y); y += 6;
+    right(`Tax: ${fmtMoney(tax)}`, y); y += 6;
+    doc.setFontSize(12);
+    right(`Total: ${fmtMoney(calculatedTotal)}`, y); y += 7;
+    doc.setFontSize(10);
+    right(`Paid: ${fmtMoney(totalPaid)}`, y); y += 6;
+    doc.setDrawColor(200);
+    doc.line(pageWidth - 70, y, pageWidth - 14, y);
+    y += 6;
+    doc.setFontSize(12);
+    right(`Balance: ${fmtMoney(Math.max(calculatedTotal - totalPaid, 0))}`, y);
+    y += 10;
 
-  const onDownloadInvoice = () => downloadHTML(`invoice-${saleId.slice(0,8)}.html`, invoiceHTML());
-  const onDownloadReceipt = () => downloadHTML(`receipt-${saleId.slice(0,8)}.html`, receiptHTML());
+    // Payments table (optional)
+    if (payments.length) {
+      doc.setFontSize(11);
+      doc.text("Payments", 14, y); y += 4;
+
+      const payRows = payments.map(p => ([
+        new Date(p.payment_date).toLocaleString(),
+        p.payment_method,
+        fmtMoney(p.amount_paid),
+        p.notes ?? ""
+      ]));
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Method", "Amount", "Notes"]],
+        body: payRows,
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: {
+          2: { halign: "right", cellWidth: 24 },
+        }
+      });
+      y = (doc as any).lastAutoTable.finalY || y;
+    }
+
+    // Footer
+    const footerY = doc.internal.pageSize.getHeight() - 14;
+    doc.setFontSize(9);
+    doc.text("Thank you for your business!", 14, footerY);
+
+    doc.save(`invoice-${saleId.slice(0, 8)}.pdf`);
+  };
+
+  const receiptPdf = () => {
+    // 80mm thermal-style receipt
+    const width = 80; // mm
+    const dynamicHeight = Math.max(140, 70 + items.length * 6 + payments.length * 6);
+    const doc = new jsPDF({ unit: "mm", format: [width, dynamicHeight] });
+
+    let y = 8;
+    const center = (txt: string, yy: number, size = 10) => {
+      doc.setFontSize(size);
+      doc.text(txt, width / 2, yy, { align: "center" });
+    };
+    const row = (label: string, value: string) => {
+      doc.setFontSize(9);
+      doc.text(label, 6, y);
+      doc.text(value, width - 6, y, { align: "right" });
+      y += 5;
+    };
+    const rule = () => { doc.setDrawColor(220); doc.line(6, y, width - 6, y); y += 3; };
+
+    center(STORE.name, y, 12); y += 5;
+    center(STORE.address, y); y += 4;
+    center(`${STORE.phone} • ${STORE.email}`, y); y += 6;
+
+    center("RECEIPT", y, 11); y += 6;
+    row("Sale #", saleId.slice(0, 8));
+    row("Date", new Date(createdAt).toLocaleString());
+    row("Customer", customerName ?? "Walk-in");
+    rule();
+
+    // Items (compact)
+    doc.setFontSize(9);
+    items.forEach(i => {
+      doc.text(i.product_name, 6, y); y += 4;
+      const line = `${i.quantity} × ${fmtMoney(i.price)}  Tax ${i.tax_rate}%`;
+      doc.text(line, 6, y);
+      const lineTotal = fmtMoney(i.price * i.quantity * (1 + i.tax_rate / 100));
+      doc.text(lineTotal, width - 6, y, { align: "right" });
+      y += 5;
+    });
+    rule();
+
+    row("Subtotal", fmtMoney(subtotal));
+    row("Tax", fmtMoney(tax));
+    doc.setFontSize(10);
+    row("Total", fmtMoney(calculatedTotal));
+    row("Paid", fmtMoney(totalPaid));
+    rule();
+    doc.setFontSize(11);
+    row("Balance", fmtMoney(Math.max(calculatedTotal - totalPaid, 0)));
+    rule();
+
+    // Last payment (if any)
+    if (payments.length) {
+      const latest = payments[0];
+      doc.setFontSize(9);
+      doc.text("Latest Payment:", 6, y); y += 4;
+      row("Date", new Date(latest.payment_date).toLocaleString());
+      row("Method", latest.payment_method);
+      row("Amount", fmtMoney(latest.amount_paid));
+      if (latest.notes) { doc.text(latest.notes, 6, y); y += 5; }
+      rule();
+    }
+
+    center("Thank you!", y + 2);
+    doc.save(`receipt-${saleId.slice(0, 8)}.pdf`);
+  };
+
+  const onDownloadInvoice = () => invoicePdf();
+  const onDownloadReceipt = () => receiptPdf();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -213,13 +284,14 @@ export default function SaleDetailDialog({
               <Badge variant={isPaid ? "default" : "destructive"}>
                 {isPaid ? "Paid" : "Outstanding"}
               </Badge>
+              {/* ⬇️ Hooked up to PDF now */}
               <Button size="sm" variant="outline" onClick={onDownloadInvoice}>
                 <Download className="h-4 w-4 mr-1" />
-                Invoice
+                Invoice (PDF)
               </Button>
               <Button size="sm" variant="outline" onClick={onDownloadReceipt}>
                 <Download className="h-4 w-4 mr-1" />
-                Receipt
+                Receipt (PDF)
               </Button>
             </div>
           </DialogTitle>
@@ -265,8 +337,6 @@ export default function SaleDetailDialog({
 
             {/* Summary + Payment status */}
             <div className="grid md:grid-cols-1">
-              
-
               <Card>
                 <CardHeader><CardTitle>Payment Status</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
